@@ -44,7 +44,6 @@
         id="queryInput"
         placeholder="Type your Natural Language Query Here"
         class="w-full p-2 text-gray-900 rounded-l-md outline-none"
-        onkeypress="handleQueryInput(event)"
       />
       <button
         onclick="submitQuery()"
@@ -184,25 +183,23 @@
       }
     }
   
-    // Function to handle key events for the query input
-    function handleQueryInput(event) {
-      const query = document.getElementById("queryInput").value.trim();
-  
-      // Shift + Enter triggers query submission
-      if (event.altKey && event.key === "Enter") {
-        print(console.log("Submitting query:", query));
-        submitQuery();
-        event.preventDefault(); // Prevent new line in input
-        return;
-      }
-  
-      // Enter triggers location search
-      if (event.key === "Enter") {
-        console.log("Searching location for query:", query);
-        searchLocation(query);
-        event.preventDefault();
-      }
-    }
+    // // Function to handle key events for the query input
+    // function handleQueryInput(event) {
+    //   const query = document.getElementById("queryInput").value.trim();
+
+    //   // Alt + Enter triggers query submission
+    //   if (event.altKey && event.key === "Enter") {
+    //     submitQuery();
+    //     event.preventDefault(); // Prevent new line in input
+    //     return;
+    //   }
+
+    //   // Enter triggers location search
+    //   if (event.key === "Enter") {
+    //     searchLocation(query);
+    //     event.preventDefault();
+    //   }
+    // }
   
     // Function to search location using OpenStreetMap Nominatim API
     function searchLocation(query) {
@@ -285,6 +282,27 @@
         alert("Query submitted successfully!");
       })
       .catch(error => console.error("Error:", error));
+    }
+
+    // Attach a keydown event listener to the whole document
+    document.addEventListener("keydown", handleGlobalKeyPress);
+
+    // Function to handle key events anywhere on the page
+    function handleGlobalKeyPress(event) {
+      const query = document.getElementById("queryInput").value.trim();
+
+      // Alt + Enter triggers query submission
+      if (event.altKey && event.key === "Enter") {
+        submitQuery();
+        event.preventDefault(); // Prevent default behavior
+        return;
+      }
+
+      // Enter triggers location search
+      if (event.key === "Enter") {
+        searchLocation(query);
+        event.preventDefault();
+      }
     }
   </script>
   
