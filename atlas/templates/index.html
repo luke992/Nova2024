@@ -337,8 +337,15 @@
         } else {
           alert("Query submitted successfully!");
           document.getElementById("queryInput").value = ""; // Clear the query
-          // check if there is a response
-          throwoutput_to_layer(data["response"]);
+          
+          // Format current timestamp
+          const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+          
+          // Format the layer name with timestamp and query
+          const layerName = `${timestamp} - ${query}`;
+
+          // Pass both the response data and formatted name to throwoutput_to_layer
+          throwoutput_to_layer(data["response"], layerName);
         }
       })
       .catch(error => console.error("Error:", error));
@@ -373,28 +380,28 @@
 
     ];
     
-    function createmarker_with_data(lat,lon,buildingName, display_name) {
+    function createmarker_with_data(lat,lon,buildingName, tags) {
       //alert(buildingName)
       const marker = L.marker([lat, lon]).addTo(map);
-      marker.bindPopup("<b>" +buildingName + "</b><br>Address: " + display_name).openPopup();
+      marker.bindPopup("<b>" +buildingName + "</b><br>Tags: <div style='word-wrap:break-word;'>" + JSON.stringify(tags) + "</div>").openPopup();
       return marker   
     }
   
-    function throwoutput_to_layer(markers) {
+    function throwoutput_to_layer(markers, layerName) {
       // Create a LayerGroup for markers
       var markerLayer = L.layerGroup();
 
       // Loop through the markers array and add a marker for each location
       markers.forEach(function(markerData) {
-        mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, markerData.address);
-        mmarker.addTo(markerLayer)
+        mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, markerData.tags);
+        mmarker.addTo(markerLayer);
       });
 
       // Add the markerLayer to the map initially
       mylayerId = addLayerToMap(markerLayer);
-      // rename a layer
-      document.getElementById(`${mylayerId}-label`).innerText = "Newest Output";
 
+      // Rename the layer in the sidebar with the provided layerName
+      document.getElementById(`${mylayerId}-label`).innerText = layerName;
     }
 
 </script>

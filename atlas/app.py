@@ -97,12 +97,7 @@ def submit_query():
                 new_element["lat"] = element.get("lat", None)
                 new_element["lng"] = element.get("lon", None)
                 new_element["title"] = element.get("tags", {}).get("name", "Unknown")
-                tags = element.get("tags", {})
-                if all(key in tags for key in ["is_in:country", "is_in:department", "is_in:region"]):
-                    address = f"{tags.get('is_in:region', '')}, {tags.get('is_in:department', '')}, {tags.get('is_in:country', '')}"
-                else:
-                    address = ''
-                new_element["address"] = address
+                new_element["tags"] = element.get("tags", {})
                 new_array.append(new_element)
 
             return {"response": new_array}
