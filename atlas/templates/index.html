@@ -82,12 +82,23 @@
     });
 
     // CartoDB Positron layer (only labels, no background)
-    const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    const cartoLabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap contributors & CARTO'
     });
 
-    // Combine satellite and labels into a hybrid layer
-    const hybridLayer = L.layerGroup([satelliteLayer, labelsLayer]);
+    // Hybrid layer using CartoDB labels and Esri satellite imagery
+    const cartoHybridLayer = L.layerGroup([satelliteLayer, cartoLabelsLayer]);
+
+    // Esri World Imagery with English Labels
+    const esriSatelliteWithEnglishLabels = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }),
+      L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels © Esri',
+        maxZoom: 18
+      })
+    ]);
 
     // Initialize the Leaflet map with the default OSM layer
     const map = L.map('map', {
@@ -99,11 +110,13 @@
     // Define base layers for the layer control
     const baseLayers = {
       "OSM": osmLayer,
-      "Satellite + Labels": hybridLayer
+      "Satellite + Carto Labels": cartoHybridLayer,
+      "Esri Satellite + English Labels": esriSatelliteWithEnglishLabels
     };
 
     // Add layer control to toggle between base layers
     L.control.layers(baseLayers).addTo(map);
+
 
 
   
