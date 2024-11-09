@@ -3,70 +3,311 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crisis Response Map</title>
+  <title>ATLAS</title>
+  
   <!-- Link to Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Link to Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
+  
+  <!-- Link to Leaflet CSS (1.7.1) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+  <!-- Link to Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  
   <style>
-    /* Ensure the map takes up the entire screen */
-    #map {
+    /* Main layout container */
+    #main-container {
+      display: flex;
       height: calc(100vh - 4rem); /* Full height minus the input box */
+    }
+    /* Sidebar styles */
+    #sidebar {
+      width: 20%;
+      background-color: #2d3748; /* Tailwind color: gray-800 */
+      color: white;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    /* Map container */
+    #map {
+      width: 80%;
     }
   </style>
 </head>
 <body class="bg-gray-100">
 
-  <!-- Input Text Box -->
+  <!-- Input Text Box with Submit Button -->
   <div class="w-full p-4 bg-gray-900 text-white text-center flex justify-center">
-    <input
-      type="text"
-      id="queryInput"
-      placeholder="Type your Natural Language Query Here"
-      class="w-2/3 p-2 text-gray-900 rounded-md outline-none"
-      onkeypress="submitQuery(event)"
-    />
+    <div class="flex w-2/3">
+      <input
+        type="text"
+        id="queryInput"
+        placeholder="Type your Natural Language Query Here"
+        class="w-full p-2 text-gray-900 rounded-l-md outline-none"
+      />
+      <button
+        onclick="submitQuery()"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md"
+      >
+        Submit
+      </button>
+    </div>
   </div>
 
-  <!-- Full-Screen Map -->
-  <div id="map"></div>
+  <!-- Main Content Container (Map + Sidebar) -->
+  <div id="main-container">
+    <!-- Map Container -->
+    <div id="map"></div>
 
-  <!-- Include Leaflet JavaScript -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
+    <!-- Permanent Sidebar -->
+    <div id="sidebar">
+      <h2 class="text-xl font-bold mb-4">Layers</h2>
+      <ul id="layersList" class="space-y-2">
+        <!-- Layers will be appended here -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- Include Leaflet JavaScript (1.7.1) -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <!-- Include Leaflet Draw JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  
   <script>
     // Initialize the Leaflet map
     const map = L.map('map').setView([1.6508, 20.0171], 4); // Focus on Africa
-
+  
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
+      maxZoom: 30,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+  
+    let polygonCounter = 1; // Counter to keep track of polygons
+    let pointCounter = 1; // Counter to keep track of points
+    const layers = {}; // Object to store layers by ID
+  
+    // Initialize the Leaflet Draw control and add it to the map
+    const drawControl = new L.Control.Draw({
+      draw: {
+        polygon: {
+          allowIntersection: false, // Restricts shape to simple polygons
+          showArea: true,
+          shapeOptions: {
+            color: 'blue'
+          }
+        },
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        marker: true, // Enable point/marker drawing
+        circlemarker: false
+      },
+      edit: false
+    });
+    
+    map.addControl(drawControl);
+  
+    // Handle the creation of new polygons or points
+    map.on(L.Draw.Event.CREATED, function (event) {
+      const layer = event.layer;
+      addLayerToMap(layer);
+    });
+  
+    // Function to add a drawn polygon or point to the map and sidebar list
+    function addLayerToMap(layer) {
+      let label = '';
+      const layerId = `layer-${polygonCounter + pointCounter}`;
+  
+      // Check if layer is a polygon or point and label accordingly
+      if (layer instanceof L.Polygon) {
+        label = `Polygon ${polygonCounter++}`;
+      } else if (layer instanceof L.Marker) {
+        label = `Point ${pointCounter++}`;
+      }
+  
+      layers[layerId] = layer; // Store the layer in the layers object
+      layer.addTo(map);
+  
+      // Add layer to the sidebar list with the appropriate label
+      const layersList = document.getElementById("layersList");
+      const listItem = document.createElement("li");
+      listItem.className = "flex items-center justify-between mb-2";
+      listItem.id = `${layerId}-item`;
+      listItem.innerHTML = `
+        <div class="flex items-center">
+          <input type="checkbox" id="${layerId}-checkbox" checked class="mr-2" onchange="toggleLayer('${layerId}')">
+          <label id="${layerId}-label" for="${layerId}-checkbox">${label}</label>
+        </div>
+        <div>
+          <button onclick="renameLayer('${layerId}')" class="text-blue-500 hover:underline mr-2">Rename</button>
+          <button onclick="deleteLayer('${layerId}')" class="text-red-500 hover:underline">Delete</button>
+        </div>
+      `;
+      layersList.appendChild(listItem);
+    }
+  
+    // Function to toggle layer visibility
+    function toggleLayer(layerId) {
+      const checkbox = document.getElementById(`${layerId}-checkbox`);
+      if (checkbox.checked) {
+        layers[layerId].addTo(map);
+      } else {
+        map.removeLayer(layers[layerId]);
+      }
+    }
+  
+    // Function to rename a layer
+    function renameLayer(layerId) {
+      const currentLabel = document.getElementById(`${layerId}-label`).innerText;
+      const newLabel = prompt("Enter a new name for the layer:", currentLabel);
+  
+      if (newLabel && newLabel.trim() !== "") {
+        document.getElementById(`${layerId}-label`).innerText = newLabel.trim();
+      }
+    }
+  
+    // Function to delete a layer
+    function deleteLayer(layerId) {
+      // Remove the layer from the map
+      if (layers[layerId]) {
+        map.removeLayer(layers[layerId]);
+        delete layers[layerId];
+      }
+  
+      // Remove the layer from the sidebar list
+      const listItem = document.getElementById(`${layerId}-item`);
+      if (listItem) {
+        listItem.remove();
+      }
+    }
+  
+    // // Function to handle key events for the query input
+    // function handleQueryInput(event) {
+    //   const query = document.getElementById("queryInput").value.trim();
 
-    // JavaScript function to submit the query
-    function submitQuery(event) {
-      if (event.key === "Enter") {
-        const query = document.getElementById("queryInput").value;
-        
-        fetch("/submit_query", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ query: query })
-        })
+    //   // Alt + Enter triggers query submission
+    //   if (event.altKey && event.key === "Enter") {
+    //     submitQuery();
+    //     event.preventDefault(); // Prevent new line in input
+    //     return;
+    //   }
+
+    //   // Enter triggers location search
+    //   if (event.key === "Enter") {
+    //     searchLocation(query);
+    //     event.preventDefault();
+    //   }
+    // }
+  
+    // Function to search location using OpenStreetMap Nominatim API
+    function searchLocation(query) {
+      if (!query) {
+        alert("Please type in a location to search.");
+        return;
+      }
+  
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(data => {
-          console.log("Server response:", data.message);
-          alert("Query submitted: " + data.message);
+          if (data.length > 0) {
+            const { lat, lon, display_name } = data[0];
+            map.setView([lat, lon], 16); // Zoom to the found location
+            alert(`Found location: ${display_name}`);
+          } else {
+            alert("Location not found.");
+          }
         })
         .catch(error => console.error("Error:", error));
+    }
+  
+    // Function to submit the query with structured data
+    function submitQuery() {
+      const query = document.getElementById("queryInput").value.trim();
+      const regionOfInterest = [];
+  
+      // Check if the query is empty
+      if (!query) {
+        alert("Please type in a natural language query.");
+        return;
+      }
+  
+      // Collect selected layers and organize them as RegionOfInterest objects
+      for (const layerId in layers) {
+        const checkbox = document.getElementById(`${layerId}-checkbox`);
+        if (checkbox && checkbox.checked) {
+          const layer = layers[layerId];
+          let layerData = { type: '', coordinates: [] };
+  
+          // Determine if the layer is a polygon or point and format accordingly
+          if (layer instanceof L.Polygon) {
+            layerData.type = 'polygon';
+            const latLngs = layer.getLatLngs()[0]; // Get coordinates for the polygon
+            layerData.coordinates = latLngs.map(latlng => [latlng.lat, latlng.lng]);
+          } else if (layer instanceof L.Marker) {
+            layerData.type = 'point';
+            const latLng = layer.getLatLng();
+            layerData.coordinates = [latLng.lat, latLng.lng];
+          }
+  
+          // Add the formatted layer data to the regionOfInterest list
+          regionOfInterest.push(layerData);
+        }
+      }
+  
+      // Check if any layers are selected
+      if (regionOfInterest.length === 0) {
+        alert("Please draw polygons or add points first to define regions of interest.");
+        return;
+      }
+  
+      // Create the data to send to the server
+      const dataToSend = {
+        query: query,
+        regionOfInterest: regionOfInterest
+      };
+  
+      // Send the data to the server
+      fetch("/submit_query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(dataToSend)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Server response:", data.message);
+        alert("Query submitted successfully!");
+      })
+      .catch(error => console.error("Error:", error));
+    }
+
+    // Attach a keydown event listener to the whole document
+    document.addEventListener("keydown", handleGlobalKeyPress);
+
+    // Function to handle key events anywhere on the page
+    function handleGlobalKeyPress(event) {
+      const query = document.getElementById("queryInput").value.trim();
+
+      // Alt + Enter triggers query submission
+      if (event.altKey && event.key === "Enter") {
+        submitQuery();
+        event.preventDefault(); // Prevent default behavior
+        return;
+      }
+
+      // Enter triggers location search
+      if (event.key === "Enter") {
+        searchLocation(query);
+        event.preventDefault();
       }
     }
   </script>
+  
+  
+  
+  
 </body>
 </html>

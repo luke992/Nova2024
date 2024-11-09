@@ -10,7 +10,7 @@ def index():
 def submit_query():
     data = request.get_json()
     query = data.get('query', '')
-    print("Received query:", query)  # Print the natural language query to the console
+    print("Received query:", data)  # Print the natural language query to the console
     return jsonify({"message": query})
 
 if __name__ == '__main__':
