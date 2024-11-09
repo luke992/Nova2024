@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crisis Response Map</title>
+  <!-- Link to Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Link to Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+  <style>
+    /* Ensure the map takes up the entire screen */
+    #map {
+      height: calc(100vh - 4rem); /* Full height minus the input box */
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Input Text Box -->
+  <div class="w-full p-4 bg-gray-900 text-white text-center flex justify-center">
+    <input
+      type="text"
+      id="queryInput"
+      placeholder="Type your Natural Language Query Here"
+      class="w-2/3 p-2 text-gray-900 rounded-md outline-none"
+      onkeypress="submitQuery(event)"
+    />
+  </div>
+
+  <!-- Full-Screen Map -->
+  <div id="map"></div>
+
+  <!-- Include Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+  <script>
+    // Initialize the Leaflet map
+    const map = L.map('map').setView([1.6508, 20.0171], 4); // Focus on Africa
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // JavaScript function to submit the query
+    function submitQuery(event) {
+      if (event.key === "Enter") {
+        const query = document.getElementById("queryInput").value;
+        
+        fetch("/submit_query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ query: query })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Server response:", data.message);
+          alert("Query submitted: " + data.message);
+        })
+        .catch(error => console.error("Error:", error));
+      }
+    }
+  </script>
+</body>
+</html>
