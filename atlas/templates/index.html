@@ -393,6 +393,9 @@
 
       // Loop through the markers array and add a marker for each location
       markers.forEach(function(markerData) {
+        if (markerData.lat == null || markerData.lng == null) {
+          return;
+        }
         mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, markerData.tags);
         mmarker.addTo(markerLayer);
       });
