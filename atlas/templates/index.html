@@ -22,7 +22,7 @@
     }
     /* Sidebar styles */
     #sidebar {
-      width: 20%;
+      width: 15%;
       background-color: #2d3748; /* Tailwind color: gray-800 */
       color: white;
       padding: 1rem;
@@ -30,7 +30,7 @@
     }
     /* Map container */
     #map {
-      width: 80%;
+      width: 85%;
     }
   </style>
 </head>
@@ -42,15 +42,9 @@
       <input
         type="text"
         id="queryInput"
-        placeholder="Type your Natural Language Query Here"
-        class="w-full p-2 text-gray-900 rounded-l-md outline-none"
+        placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
+        class="w-full p-2 text-gray-900 outline-none"
       />
-      <button
-        onclick="submitQuery()"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md"
-      >
-        Submit
-      </button>
     </div>
   </div>
 
@@ -183,31 +177,13 @@
       }
     }
   
-    // // Function to handle key events for the query input
-    // function handleQueryInput(event) {
-    //   const query = document.getElementById("queryInput").value.trim();
-
-    //   // Alt + Enter triggers query submission
-    //   if (event.altKey && event.key === "Enter") {
-    //     submitQuery();
-    //     event.preventDefault(); // Prevent new line in input
-    //     return;
-    //   }
-
-    //   // Enter triggers location search
-    //   if (event.key === "Enter") {
-    //     searchLocation(query);
-    //     event.preventDefault();
-    //   }
-    // }
-  
     // Function to search location using OpenStreetMap Nominatim API
     function searchLocation(query) {
       if (!query) {
         alert("Please type in a location to search.");
         return;
       }
-  
+
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(data => {
@@ -218,28 +194,29 @@
           } else {
             alert("Location not found.");
           }
+          document.getElementById("queryInput").value = ""; // Clear the query
         })
         .catch(error => console.error("Error:", error));
     }
-  
+
     // Function to submit the query with structured data
     function submitQuery() {
       const query = document.getElementById("queryInput").value.trim();
       const regionOfInterest = [];
-  
+
       // Check if the query is empty
       if (!query) {
         alert("Please type in a natural language query.");
         return;
       }
-  
+
       // Collect selected layers and organize them as RegionOfInterest objects
       for (const layerId in layers) {
         const checkbox = document.getElementById(`${layerId}-checkbox`);
         if (checkbox && checkbox.checked) {
           const layer = layers[layerId];
           let layerData = { type: '', coordinates: [] };
-  
+
           // Determine if the layer is a polygon or point and format accordingly
           if (layer instanceof L.Polygon) {
             layerData.type = 'polygon';
@@ -250,24 +227,24 @@
             const latLng = layer.getLatLng();
             layerData.coordinates = [latLng.lat, latLng.lng];
           }
-  
+
           // Add the formatted layer data to the regionOfInterest list
           regionOfInterest.push(layerData);
         }
       }
-  
+
       // Check if any layers are selected
       if (regionOfInterest.length === 0) {
         alert("Please draw polygons or add points first to define regions of interest.");
         return;
       }
-  
+
       // Create the data to send to the server
       const dataToSend = {
         query: query,
         regionOfInterest: regionOfInterest
       };
-  
+
       // Send the data to the server
       fetch("/submit_query", {
         method: "POST",
@@ -280,6 +257,7 @@
       .then(data => {
         console.log("Server response:", data.message);
         alert("Query submitted successfully!");
+        document.getElementById("queryInput").value = ""; // Clear the query
       })
       .catch(error => console.error("Error:", error));
     }
