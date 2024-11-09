@@ -31,14 +31,12 @@ def interpret_input(user_input):
         base_url=PROXY_ENDPOINT # and this!!!
     )
 
-    response_string = ""
-
     response = client.chat.completions.create(
-        model="openai/gpt-4o",
+        model="anthropic/claude-3-5-sonnet-20241022",
         messages = [
             {
                 "role": "user",
-                "content": f"Convert the following natural language description into an OpenStreetMap-compatible query. The query should be written as a Python call to overpassQueryBuilder:\n\n'{user_input}'\n\nType out a json object containing the necessary arguments, such as areas, elementType, and selector. Do not type any extra text.",
+                "content": f"Convert the following natural language description into an OpenStreetMap-compatible query (using OSMPythonTools with the Overpass Query Builder). The query should be written as a Python call to overpassQueryBuilder:\n\n'{user_input}'\n\nType out a json object containing the necessary arguments, such as area, elementType, and selector. The values of these arguments should be strings such as \"amenity=hopsital\". Do not type any extra text.",
             }
         ],
         stream=False
@@ -72,8 +70,8 @@ def main():
     if osm_query.endswith('```'):
         osm_query = osm_query[:-3]
 
-    if osm_query.startswith('```json'):
-        osm_query = osm_query[7:]
+    if osm_query.startswith('```json\n'):
+        osm_query = osm_query[8:]
 
     print(f"Generated OSM Query: {osm_query}")
 
@@ -85,6 +83,9 @@ def main():
     osm_results = overpass.query(osm_query)
 
     print("Number of results found: " + str(osm_results.countElements()))
+
+    # for result in osm_results:
+    #     print(result)
 
 if __name__ == "__main__":
     main()
