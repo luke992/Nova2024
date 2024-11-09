@@ -18,11 +18,11 @@
     /* Main layout container */
     #main-container {
       display: flex;
-      height: calc(100vh - 4rem); /* Full height minus the input box */
+      height: 100vh; /* Full height minus the input box */
     }
     /* Sidebar styles */
     #sidebar {
-      width: 15%;
+      width: 20%; /* Adjusted to 20% */
       background-color: #2d3748; /* Tailwind color: gray-800 */
       color: white;
       padding: 1rem;
@@ -30,28 +30,42 @@
     }
     /* Map container */
     #map {
-      width: 85%;
+      width: 80%; /* Adjusted to 80% */
+      position: relative; /* Allow positioning of the input box within */
+    }
+    /* Center the input box within the map container */
+    #input-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000; /* Ensure it stays above the map */
+      width: 50%; /* Set a max width for the input box */
+    }
+    /* Styling for the input box */
+    #queryInput {
+      font-size: 1.125rem; /* Larger font size */
+      border: 2px solid #4a5568; /* Dark grey border */
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Box shadow */
+      padding: 0.75rem; /* Larger padding for a more prominent input */
     }
   </style>
 </head>
 <body class="bg-gray-100">
 
-  <!-- Input Text Box with Submit Button -->
-  <div class="w-full p-4 bg-gray-900 text-white text-center flex justify-center">
-    <div class="flex w-2/3">
-      <input
-        type="text"
-        id="queryInput"
-        placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
-        class="w-full p-2 text-gray-900 outline-none"
-      />
-    </div>
-  </div>
-
   <!-- Main Content Container (Map + Sidebar) -->
   <div id="main-container">
     <!-- Map Container -->
-    <div id="map"></div>
+    <div id="map">
+      <!-- Input Text Box Centered in the Map Container -->
+      <div id="input-container" class="p-4">
+        <input
+          type="text"
+          id="queryInput"
+          placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
+          class="w-full p-2 text-gray-900 rounded-md outline-none"
+        />
+      </div>
+    </div>
 
     <!-- Permanent Sidebar -->
     <div id="sidebar">
@@ -61,6 +75,7 @@
       </ul>
     </div>
   </div>
+
 
   <!-- Include Leaflet JavaScript (1.7.1) -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
