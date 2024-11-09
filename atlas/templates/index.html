@@ -69,14 +69,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   
   <script>
-    // Initialize the Leaflet map
-    const map = L.map('map').setView([1.6508, 20.0171], 4); // Focus on Africa
-  
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 30,
+    // Initialize the base layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    });
+
+    // Free Satellite Imagery (from Esri)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: 'Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    // CartoDB Positron layer (only labels, no background)
+    const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors & CARTO'
+    });
+
+    // Combine satellite and labels into a hybrid layer
+    const hybridLayer = L.layerGroup([satelliteLayer, labelsLayer]);
+
+    // Initialize the Leaflet map with the default OSM layer
+    const map = L.map('map', {
+      center: [1.6508, 20.0171],
+      zoom: 4,
+      layers: [osmLayer] // Set OSM as the default layer
+    });
+
+    // Define base layers for the layer control
+    const baseLayers = {
+      "OSM": osmLayer,
+      "Satellite + Labels": hybridLayer
+    };
+
+    // Add layer control to toggle between base layers
+    L.control.layers(baseLayers).addTo(map);
+
+
   
     let polygonCounter = 1; // Counter to keep track of polygons
     let pointCounter = 1; // Counter to keep track of points
