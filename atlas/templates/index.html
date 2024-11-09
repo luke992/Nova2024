@@ -360,9 +360,10 @@
 
     // Create an array of marker locations
     var markerdata = [
-      { lat: 51.505, lng: -0.09, title: "Marker 1" },
-      { lat: 51.515, lng: -0.1, title: "Marker 2" },
-      { lat: 51.525, lng: -0.11, title: "Marker 3" }
+      { lat: 51.505, lng: -0.09, title: "Marker 1", address: "Etike, Angla, Cameron"},
+      { lat: 51.515, lng: -0.1, title: "Marker 2", address: ""},
+      { lat: 51.525, lng: -0.11, title: "Marker 3", address: ""}
+
     ];
     
     function createmarker_with_data(lat,lon,buildingName, display_name) {
@@ -378,7 +379,7 @@
 
       // Loop through the markers array and add a marker for each location
       markers.forEach(function(markerData) {
-        mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, "");
+        mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, markerData.address);
         mmarker.addTo(markerLayer)
       });
 
