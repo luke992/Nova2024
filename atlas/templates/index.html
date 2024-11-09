@@ -147,6 +147,7 @@
         </div>
       `;
       layersList.appendChild(listItem);
+      return layerId;
     }
   
     // Function to toggle layer visibility
@@ -211,13 +212,31 @@
         return;
       }
   
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`)
         .then(response => response.json())
         .then(data => {
           if (data.length > 0) {
-            const { lat, lon, display_name } = data[0];
+
+            const { lat, lon, display_name, address} = data[0];
             map.setView([lat, lon], 16); // Zoom to the found location
-            alert(`Found location: ${display_name}`);
+            
+            // Check if the address contains a building name
+            let buildingName = address.building || address.leisure || address.amenity || address.shop || address.office;
+
+            // Fallback to parsing display_name if no specific building field is available
+            if (!buildingName) {
+                buildingName = display_name.split(",")[0]; // Get the first part as a fallback
+            }
+            //alert(buildingName)
+            const marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("<b>" +buildingName + "</b><br>Address: " + display_name).openPopup();
+          
+            mylayerId = addLayerToMap(marker);
+            
+            // rename a layer
+            document.getElementById(`${mylayerId}-label`).innerText = buildingName;
+
+            //alert(`Found location: ${display_name}`);
           } else {
             alert("Location not found.");
           }
