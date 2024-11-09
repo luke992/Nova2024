@@ -74,6 +74,8 @@ def submit_query():
     if not user_query or not regions:
         return jsonify({"error": "Both query and regionOfInterest are required"}), 400
     
+    print(data)
+
     # Generate Overpass API query using GPT-4o
     try:
         overpass_query = get_overpass_api_query(user_query, regions)
@@ -84,11 +86,30 @@ def submit_query():
     # Send the generated Overpass query to the Overpass API
     try:
         overpass_response = query_overpass(overpass_query)
+        print(overpass_response)
+
+        if "elements" in overpass_response and len(overpass_response["elements"]) > 0:
+            
+            # format the elements so that they can be displayed on the frontend
+            new_array = []
+            for element in overpass_response["elements"]:
+                new_element = {}
+                new_element["lat"] = element.get("lat", None)
+                new_element["lng"] = element.get("lon", None)
+                new_element["title"] = element.get("tags", {}).get("name", "Unknown")
+                tags = element.get("tags", {})
+                if all(key in tags for key in ["is_in:country", "is_in:department", "is_in:region"]):
+                    address = f"{tags.get('is_in:region', '')}, {tags.get('is_in:department', '')}, {tags.get('is_in:country', '')}"
+                else:
+                    address = ''
+                new_element["address"] = address
+                new_array.append(new_element)
+
+            return {"response": new_array}
+        else:
+            return {"error": "No elements found in the Overpass API response"}, 404
     except Exception as e:
         return jsonify({"error": "Failed to fetch data from Overpass API", "details": str(e)}), 500
-
-    # Return the Overpass response back to the client
-    return jsonify({"overpass_response": overpass_response})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -290,21 +290,21 @@
         const checkbox = document.getElementById(`${layerId}-checkbox`);
         if (checkbox && checkbox.checked) {
           const layer = layers[layerId];
-          let layerData = { type: '', coordinates: [] };
+          let regionData = { type: '', coordinates: [] };
 
           // Determine if the layer is a polygon or point and format accordingly
           if (layer instanceof L.Polygon) {
-            layerData.type = 'polygon';
+            regionData.type = 'polygon';
             const latLngs = layer.getLatLngs()[0]; // Get coordinates for the polygon
-            layerData.coordinates = latLngs.map(latlng => [latlng.lat, latlng.lng]);
+            regionData.coordinates = latLngs.map(latlng => ({ lat: latlng.lat, long: latlng.lng }));
           } else if (layer instanceof L.Marker) {
-            layerData.type = 'point';
+            regionData.type = 'point';
             const latLng = layer.getLatLng();
-            layerData.coordinates = [latLng.lat, latLng.lng];
+            regionData.coordinates = [{ lat: latLng.lat, long: latLng.lng }];
           }
 
-          // Add the formatted layer data to the regionOfInterest list
-          regionOfInterest.push(layerData);
+          // Add the formatted region data to the regionsOfInterest list
+          regionOfInterest.push(regionData);
         }
       }
 
@@ -330,9 +330,16 @@
       })
       .then(response => response.json())
       .then(data => {
-        console.log("Server response:", data.message);
-        alert("Query submitted successfully!");
-        document.getElementById("queryInput").value = ""; // Clear the query
+        console.log("Server response:", data);
+        // Check if there is an error in the response
+        if (data.hasOwnProperty("error")) {
+          alert("Error: " + data.error);
+        } else {
+          alert("Query submitted successfully!");
+          document.getElementById("queryInput").value = ""; // Clear the query
+          // check if there is a response
+          throwoutput_to_layer(data["response"]);
+        }
       })
       .catch(error => console.error("Error:", error));
     }
