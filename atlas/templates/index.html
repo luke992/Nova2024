@@ -234,7 +234,8 @@
         listItem.remove();
       }
     }
-  
+
+
     // Function to search location using OpenStreetMap Nominatim API
     function searchLocation(query) {
       if (!query) {
@@ -256,11 +257,10 @@
             if (!buildingName) {
                 buildingName = display_name.split(",")[0]; // Get the first part as a fallback
             }
-            //alert(buildingName)
-            const marker = L.marker([lat, lon]).addTo(map);
-            marker.bindPopup("<b>" +buildingName + "</b><br>Address: " + display_name).openPopup();
-          
-            mylayerId = addLayerToMap(marker);
+            
+            mmarker = createmarker_with_data(lat,lon,buildingName, display_name)
+
+            mylayerId = addLayerToMap(mmarker);
             
             // rename a layer
             document.getElementById(`${mylayerId}-label`).innerText = buildingName;
@@ -357,7 +357,39 @@
         event.preventDefault();
       }
     }
-  </script>
+
+    // Create an array of marker locations
+    var markerdata = [
+      { lat: 51.505, lng: -0.09, title: "Marker 1" },
+      { lat: 51.515, lng: -0.1, title: "Marker 2" },
+      { lat: 51.525, lng: -0.11, title: "Marker 3" }
+    ];
+    
+    function createmarker_with_data(lat,lon,buildingName, display_name) {
+      //alert(buildingName)
+      const marker = L.marker([lat, lon]).addTo(map);
+      marker.bindPopup("<b>" +buildingName + "</b><br>Address: " + display_name).openPopup();
+      return marker   
+    }
+  
+    function throwoutput_to_layer(markers) {
+      // Create a LayerGroup for markers
+      var markerLayer = L.layerGroup();
+
+      // Loop through the markers array and add a marker for each location
+      markers.forEach(function(markerData) {
+        mmarker = createmarker_with_data(markerData.lat, markerData.lng, markerData.title, "");
+        mmarker.addTo(markerLayer)
+      });
+
+      // Add the markerLayer to the map initially
+      mylayerId = addLayerToMap(markerLayer);
+      // rename a layer
+      document.getElementById(`${mylayerId}-label`).innerText = "Newest Output";
+
+    }
+
+</script>
   
   
   
