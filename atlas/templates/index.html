@@ -18,11 +18,11 @@
     /* Main layout container */
     #main-container {
       display: flex;
-      height: calc(100vh - 4rem); /* Full height minus the input box */
+      height: 100vh; /* Full height minus the input box */
     }
     /* Sidebar styles */
     #sidebar {
-      width: 15%;
+      width: 20%; /* Adjusted to 20% */
       background-color: #2d3748; /* Tailwind color: gray-800 */
       color: white;
       padding: 1rem;
@@ -30,28 +30,42 @@
     }
     /* Map container */
     #map {
-      width: 85%;
+      width: 80%; /* Adjusted to 80% */
+      position: relative; /* Allow positioning of the input box within */
+    }
+    /* Center the input box within the map container */
+    #input-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000; /* Ensure it stays above the map */
+      width: 50%; /* Set a max width for the input box */
+    }
+    /* Styling for the input box */
+    #queryInput {
+      font-size: 1.125rem; /* Larger font size */
+      border: 2px solid #4a5568; /* Dark grey border */
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Box shadow */
+      padding: 0.75rem; /* Larger padding for a more prominent input */
     }
   </style>
 </head>
 <body class="bg-gray-100">
 
-  <!-- Input Text Box with Submit Button -->
-  <div class="w-full p-4 bg-gray-900 text-white text-center flex justify-center">
-    <div class="flex w-2/3">
-      <input
-        type="text"
-        id="queryInput"
-        placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
-        class="w-full p-2 text-gray-900 outline-none"
-      />
-    </div>
-  </div>
-
   <!-- Main Content Container (Map + Sidebar) -->
   <div id="main-container">
     <!-- Map Container -->
-    <div id="map"></div>
+    <div id="map">
+      <!-- Input Text Box Centered in the Map Container -->
+      <div id="input-container" class="p-4">
+        <input
+          type="text"
+          id="queryInput"
+          placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
+          class="w-full p-2 text-gray-900 rounded-md outline-none"
+        />
+      </div>
+    </div>
 
     <!-- Permanent Sidebar -->
     <div id="sidebar">
@@ -61,6 +75,7 @@
       </ul>
     </div>
   </div>
+
 
   <!-- Include Leaflet JavaScript (1.7.1) -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -82,12 +97,23 @@
     });
 
     // CartoDB Positron layer (only labels, no background)
-    const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    const cartoLabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap contributors & CARTO'
     });
 
-    // Combine satellite and labels into a hybrid layer
-    const hybridLayer = L.layerGroup([satelliteLayer, labelsLayer]);
+    // Hybrid layer using CartoDB labels and Esri satellite imagery
+    const cartoHybridLayer = L.layerGroup([satelliteLayer, cartoLabelsLayer]);
+
+    // Esri World Imagery with English Labels
+    const esriSatelliteWithEnglishLabels = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }),
+      L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels © Esri',
+        maxZoom: 18
+      })
+    ]);
 
     // Initialize the Leaflet map with the default OSM layer
     const map = L.map('map', {
@@ -99,11 +125,13 @@
     // Define base layers for the layer control
     const baseLayers = {
       "OSM": osmLayer,
-      "Satellite + Labels": hybridLayer
+      "Satellite + Carto Labels": cartoHybridLayer,
+      "Esri Satellite + English Labels": esriSatelliteWithEnglishLabels
     };
 
     // Add layer control to toggle between base layers
     L.control.layers(baseLayers).addTo(map);
+
 
 
   
@@ -169,6 +197,7 @@
         </div>
       `;
       layersList.appendChild(listItem);
+      return layerId;
     }
   
     // Function to toggle layer visibility
@@ -211,15 +240,32 @@
       if (!query) {
         alert("Please type in a location to search.");
         return;
-      }
-
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+      }  
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`)
         .then(response => response.json())
         .then(data => {
           if (data.length > 0) {
-            const { lat, lon, display_name } = data[0];
+
+            const { lat, lon, display_name, address} = data[0];
             map.setView([lat, lon], 16); // Zoom to the found location
-            alert(`Found location: ${display_name}`);
+            
+            // Check if the address contains a building name
+            let buildingName = address.building || address.leisure || address.amenity || address.shop || address.office;
+
+            // Fallback to parsing display_name if no specific building field is available
+            if (!buildingName) {
+                buildingName = display_name.split(",")[0]; // Get the first part as a fallback
+            }
+            //alert(buildingName)
+            const marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("<b>" +buildingName + "</b><br>Address: " + display_name).openPopup();
+          
+            mylayerId = addLayerToMap(marker);
+            
+            // rename a layer
+            document.getElementById(`${mylayerId}-label`).innerText = buildingName;
+
+            //alert(`Found location: ${display_name}`);
           } else {
             alert("Location not found.");
           }
