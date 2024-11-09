@@ -22,7 +22,7 @@
     }
     /* Sidebar styles */
     #sidebar {
-      width: 20%;
+      width: 15%;
       background-color: #2d3748; /* Tailwind color: gray-800 */
       color: white;
       padding: 1rem;
@@ -30,7 +30,7 @@
     }
     /* Map container */
     #map {
-      width: 80%;
+      width: 85%;
     }
   </style>
 </head>
@@ -42,16 +42,9 @@
       <input
         type="text"
         id="queryInput"
-        placeholder="Type your Natural Language Query Here"
-        class="w-full p-2 text-gray-900 rounded-l-md outline-none"
-        onkeypress="handleQueryInput(event)"
+        placeholder="Type your Natural Language Query Here. Enter to Search Normally, Alt+Enter to Submit ATLAS Query."
+        class="w-full p-2 text-gray-900 outline-none"
       />
-      <button
-        onclick="submitQuery()"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-md"
-      >
-        Submit
-      </button>
     </div>
   </div>
 
@@ -76,14 +69,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   
   <script>
-    // Initialize the Leaflet map
-    const map = L.map('map').setView([1.6508, 20.0171], 4); // Focus on Africa
-  
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 30,
+    // Initialize the base layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    });
+
+    // Free Satellite Imagery (from Esri)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: 'Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    // CartoDB Positron layer (only labels, no background)
+    const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors & CARTO'
+    });
+
+    // Combine satellite and labels into a hybrid layer
+    const hybridLayer = L.layerGroup([satelliteLayer, labelsLayer]);
+
+    // Initialize the Leaflet map with the default OSM layer
+    const map = L.map('map', {
+      center: [1.6508, 20.0171],
+      zoom: 4,
+      layers: [osmLayer] // Set OSM as the default layer
+    });
+
+    // Define base layers for the layer control
+    const baseLayers = {
+      "OSM": osmLayer,
+      "Satellite + Labels": hybridLayer
+    };
+
+    // Add layer control to toggle between base layers
+    L.control.layers(baseLayers).addTo(map);
+
+
   
     let polygonCounter = 1; // Counter to keep track of polygons
     let pointCounter = 1; // Counter to keep track of points
@@ -185,33 +207,12 @@
       }
     }
   
-    // Function to handle key events for the query input
-    function handleQueryInput(event) {
-      const query = document.getElementById("queryInput").value.trim();
-  
-      // Shift + Enter triggers query submission
-      if (event.altKey && event.key === "Enter") {
-        print(console.log("Submitting query:", query));
-        submitQuery();
-        event.preventDefault(); // Prevent new line in input
-        return;
-      }
-  
-      // Enter triggers location search
-      if (event.key === "Enter") {
-        console.log("Searching location for query:", query);
-        searchLocation(query);
-        event.preventDefault();
-      }
-    }
-  
     // Function to search location using OpenStreetMap Nominatim API
     function searchLocation(query) {
       if (!query) {
         alert("Please type in a location to search.");
         return;
-      }
-  
+      }  
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`)
         .then(response => response.json())
         .then(data => {
@@ -240,28 +241,29 @@
           } else {
             alert("Location not found.");
           }
+          document.getElementById("queryInput").value = ""; // Clear the query
         })
         .catch(error => console.error("Error:", error));
     }
-  
+
     // Function to submit the query with structured data
     function submitQuery() {
       const query = document.getElementById("queryInput").value.trim();
       const regionOfInterest = [];
-  
+
       // Check if the query is empty
       if (!query) {
         alert("Please type in a natural language query.");
         return;
       }
-  
+
       // Collect selected layers and organize them as RegionOfInterest objects
       for (const layerId in layers) {
         const checkbox = document.getElementById(`${layerId}-checkbox`);
         if (checkbox && checkbox.checked) {
           const layer = layers[layerId];
           let layerData = { type: '', coordinates: [] };
-  
+
           // Determine if the layer is a polygon or point and format accordingly
           if (layer instanceof L.Polygon) {
             layerData.type = 'polygon';
@@ -272,24 +274,24 @@
             const latLng = layer.getLatLng();
             layerData.coordinates = [latLng.lat, latLng.lng];
           }
-  
+
           // Add the formatted layer data to the regionOfInterest list
           regionOfInterest.push(layerData);
         }
       }
-  
+
       // Check if any layers are selected
       if (regionOfInterest.length === 0) {
         alert("Please draw polygons or add points first to define regions of interest.");
         return;
       }
-  
+
       // Create the data to send to the server
       const dataToSend = {
         query: query,
         regionOfInterest: regionOfInterest
       };
-  
+
       // Send the data to the server
       fetch("/submit_query", {
         method: "POST",
@@ -302,8 +304,30 @@
       .then(data => {
         console.log("Server response:", data.message);
         alert("Query submitted successfully!");
+        document.getElementById("queryInput").value = ""; // Clear the query
       })
       .catch(error => console.error("Error:", error));
+    }
+
+    // Attach a keydown event listener to the whole document
+    document.addEventListener("keydown", handleGlobalKeyPress);
+
+    // Function to handle key events anywhere on the page
+    function handleGlobalKeyPress(event) {
+      const query = document.getElementById("queryInput").value.trim();
+
+      // Alt + Enter triggers query submission
+      if (event.altKey && event.key === "Enter") {
+        submitQuery();
+        event.preventDefault(); // Prevent default behavior
+        return;
+      }
+
+      // Enter triggers location search
+      if (event.key === "Enter") {
+        searchLocation(query);
+        event.preventDefault();
+      }
     }
   </script>
   
